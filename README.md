@@ -1,168 +1,119 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/ihy5NjAu)
-Este **proyecto PHP puro con SQLite** implementa registro y login usando `password_hash()` y `password_verify()`.
-***
+# Sistema de Login con PHP y SQLite
 
-# Proyecto: Sistema de Autenticación con SQLite y Hash Seguro
+Proyecto de autenticación de usuarios con PHP puro y SQLite que hice para practicar seguridad en contraseñas y bases de datos.
 
-## Resumen
-Este proyecto demuestra cómo crear usuarios y validar contraseñas usando `password_hash()` y `password_verify()` con **SQLite** y **PDO**.
-El objetivo es almacenar contraseñas de manera segura y autenticarlas sin errores de comparación directa.
+## Lo que hice
 
-***
+### 1. Estructura del proyecto
 
-## Estructura del proyecto
+Primero creé todos los archivos necesarios:
+
 ```
-/proyecto-login/
+php-vanilla-login/
 │
 ├─ database/
-│  └─ usuarios.db
+│  └─ usuarios.db          (se crea al ejecutar crear_tabla.php)
 │
-├─ conexion.php
-├─ registro.php
-├─ login.php
-├─ crear_tabla.php
-└─ README.md
+├─ index.php               (página principal con menú)
+├─ registro.php            (formulario para registrarse)
+├─ login.php               (formulario para iniciar sesión)
+├─ conexion.php            (función para conectar con la BD)
+├─ crear_tabla.php         (script que crea la base de datos)
+└─ styles.css              (estilos del proyecto)
 ```
 
-***
+### 2. Configuración de la base de datos
 
-## 1. Base de datos: `crear_tabla.php`
-Este script crea la base SQLite y la tabla `usuarios`.
+Creé `conexion.php` con una función que usa PDO para conectarse a SQLite:
+- No necesita MySQL ni servidor de BD
+- Todo se guarda en un archivo `usuarios.db`
+- Manejo de errores con try-catch
 
-```php
-<?php
-try {
-    $db = new PDO("sqlite:database/usuarios.db");
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
-    $db->exec("CREATE TABLE IF NOT EXISTS usuarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        usuario TEXT UNIQUE,
-        password TEXT NOT NULL
-    )");
+Luego hice `crear_tabla.php` que crea la tabla de usuarios con:
+- id (autoincremental)
+- usuario (único)
+- password (el hash)
 
-    echo "Base de datos y tabla creadas correctamente.";
-} catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
-}
-?>
+### 3. Sistema de registro
+
+En `registro.php` implementé:
+- Formulario HTML para usuario y contraseña
+- Validación de campos vacíos
+- `password_hash()` para encriptar contraseñas
+- Detección de usuarios duplicados
+- Mensajes de éxito o error
+
+### 4. Sistema de login
+
+En `login.php` agregué:
+- Formulario de inicio de sesión
+- Consulta preparada para buscar el usuario
+- `password_verify()` para comparar contraseñas
+- Mensajes personalizados de bienvenida o error
+
+### 5. Diseño y estilos
+
+Creé `styles.css` con:
+- Tema oscuro moderno (gradientes púrpura/azul)
+- Efecto glassmorphism en las tarjetas
+- Formularios con focus effects
+- Mensajes de éxito (verde) y error (rojo)
+- Animaciones suaves en hover y entrada
+- Responsive para móviles
+
+### 6. Página principal
+
+Hice `index.php` como landing page con:
+- Icono de candado
+- Enlaces a registro y login
+- Diseño coherente con el resto
+
+## Cómo lo levanté
+
+**Paso 1:** Verifiqué que tenía PHP instalado
+```bash
+php --version
+```
+Me salió PHP 8.2.12, así que todo ok.
+
+**Paso 2:** Creé la base de datos ejecutando:
+```bash
+php crear_tabla.php
+```
+Esto me creó la carpeta `database/` y el archivo `usuarios.db` con la tabla de usuarios.
+
+**Paso 3:** Levanté el servidor de desarrollo de PHP:
+```bash
+php -S localhost:8000
 ```
 
-***
+**Paso 4:** Abrí el navegador en `http://localhost:8000/` y ya funcionaba todo.
 
-## 2. Conexión: `conexion.php`
-Conecta con la base SQLite mediante **PDO**.
+## Tecnologías usadas
 
-```php
-<?php
-function conectar() {
-    try {
-        $db = new PDO("sqlite:database/usuarios.db");
-        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        return $db;
-    } catch (PDOException $e) {
-        die("Error de conexión: " . $e->getMessage());
-    }
-}
-?>
+- **PHP 8.2** - Lenguaje del backend
+- **SQLite** - Base de datos (no necesita servidor)
+- **PDO** - Para conectar con la base de datos
+- **password_hash() / password_verify()** - Funciones de PHP para encriptar contraseñas
+- **CSS3** - Para los estilos
+
+## Seguridad implementada
+
+Las contraseñas no se guardan en texto plano. Uso `password_hash()` que genera un hash único cada vez:
+
+```
+Contraseña: miPassword123
+Hash guardado: $2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi
 ```
 
-***
+Al hacer login, `password_verify()` compara la contraseña ingresada con el hash guardado. Así aunque alguien acceda a la base de datos, no puede ver las contraseñas reales.
 
-## 3. Registro de usuario: `registro.php`
+También uso consultas preparadas con PDO para evitar inyecciones SQL.
 
-```php
-<?php
-include('conexion.php');
+## Problemas que tuve
 
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $usuario = $_POST["usuario"];
-    $clave = $_POST["clave"];
-    $hash = password_hash($clave, PASSWORD_DEFAULT);
-
-    $db = conectar();
-    $stmt = $db->prepare("INSERT INTO usuarios (usuario, password) VALUES (?, ?)");
-    if ($stmt->execute([$usuario, $hash])) {
-        echo "Usuario registrado correctamente.";
-    } else {
-        echo "Error al registrar.";
-    }
-}
-?>
-
-<form method="POST">
-  Usuario: <input type="text" name="usuario" required><br>
-  Contraseña: <input type="password" name="clave" required><br>
-  <button type="submit">Registrar</button>
-</form>
-```
-
-***
-
-## 4. Inicio de sesión: `login.php`
-
-```php
-<?php
-include('conexion.php');
-
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $usuario = $_POST["usuario"];
-    $clave = $_POST["clave"];
-
-    $db = conectar();
-    $stmt = $db->prepare("SELECT password FROM usuarios WHERE usuario = ?");
-    $stmt->execute([$usuario]);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($row && password_verify($clave, $row["password"])) {
-        echo "Inicio de sesión correcto.";
-    } else {
-        echo "Usuario o contraseña incorrectos.";
-    }
-}
-?>
-
-<form method="POST">
-  Usuario: <input type="text" name="usuario" required><br>
-  Contraseña: <input type="password" name="clave" required><br>
-  <button type="submit">Ingresar</button>
-</form>
-```
-
-***
-
-## 5. Documentación técnica (README.md)
-
-### Esquema de trabajo
-- **Registro:**  
-  - La contraseña se procesa con `password_hash()`.  
-  - El hash resultante se guarda directamente en la base de datos SQLite.
-
-- **Login:**  
-  - Se obtiene el hash del usuario desde la base.  
-  - `password_verify()` compara internamente la contraseña ingresada con el hash almacenado.
-
-### Aspectos clave de seguridad
-- `password_hash()` crea un *salt* aleatorio y lo incluye en el hash.
-- `password_verify()` extrae ese *salt* y verifica sin necesidad de almacenar datos adicionales.[4][5]
-- Los hashes cambian cada vez, incluso con contraseñas iguales, garantizando unicidad y resistencia ante ataques.
-
-### Dependencias y configuración
-- PHP 8.0 o superior con extensión `pdo_sqlite` habilitada.
-- Carpeta `database/` debe existir y ser escribible (CHMOD 775).
-
-### Ejecución
-1. Crea la base con `crear_tabla.php` (ejecutar una sola vez).  
-2. Registra usuarios en `registro.php`.  
-3. Inicia sesión desde `login.php`.
-
-### Resultados esperados
-- Cada usuario se almacena con una contraseña encriptada.  
-- El login valida correctamente sin errores de comparación.  
-- La base `usuarios.db` contendrá entradas en texto no legible.
-
-
-
-Este proyecto puede ejecutarse o bien en cualquier entorno local (XAMPP, Laragon, VSCode + PHP Server) o bien completamente autocontenido, sin necesidad de servidor MySQL.
+- Al principio los mensajes de error no se veían bien, así que agregué clases CSS para diferenciar éxitos de errores
+- Había que validar que no se registren usuarios duplicados, lo resolví con un try-catch que detecta el error 23000
+- Mejore la UX agregando placeholders y validación de campos vacíos
 
 
